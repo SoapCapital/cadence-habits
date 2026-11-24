@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Cadence" />
+  <meta name="theme-color" content="#09090b" id="themeColorMeta" />
+  <title>Cadence — Precision Habit &amp; Routine Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'] },
+          colors: {
+            surface: {
+              950: '#09090b',
+              900: '#111115',
+              800: '#18181f',
+              700: '#24242e'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      overscroll-behavior-y: contain;
+    }
+    .pt-safe { padding-top: max(12px, var(--safe-top)); }
+    .pb-safe { padding-bottom: max(12px, var(--safe-bottom)); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .ring-progress { transition: stroke-dashoffset 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+    @keyframes pop {
+      0% { transform: scale(0.92); }
+      50% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+    .animate-pop { animation: pop 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+  </style>
+</head>
+<body class="bg-zinc-50 text-zinc-900 dark:bg-surface-950 dark:text-zinc-100 min-h-screen antialiased selection:bg-indigo-500/30">
+
+  <!-- App Shell -->
+  <div id="app" class="max-w-lg mx-auto min-h-screen flex flex-col relative bg-zinc-50 dark:bg-surface-950 shadow-2xl shadow-black/20">
+
+    <!-- Top Header -->
+    <header class="sticky top-0 z-30 pt-safe bg-zinc-50/85 dark:bg-surface-950/85 backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/80 px-4 pb-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 shrink-0">
+            <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h1 class="text-base font-bold tracking-tight truncate">Cadence</h1>
+              <span id="levelBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/25">
+                Lvl 1
+              </span>
+            </div>
+            <p id="headerSubtitle" class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">Loading...</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btnInstallGuide" title="Add to iPhone Home Screen" class="p-2 rounded-xl bg-zinc-200/70 dark:bg-surface-800 hover:bg-zinc-300/70 dark:hover:bg-surface-700 text-zinc-700 dark:text-zinc-300 transition">
+            <i data-lucide="smartphone" class="w-4 h-4"></i>
+          </button>
+          <button id="btnSoundToggle" title="Toggle Sound Effects" class="p-2 rounded-xl bg-zinc-200/70 dark:bg-surface-800 hover:bg-zinc-300/70 dark:hover:bg-surface-700 text-zinc-700 dark:text-zinc-300 transition">
+            <i data-lucide="volume-2" class="w-4 h-4"></i>
+          </button>
+          <button id="btnThemeToggle" title="Toggle Light/Dark Mode" class="p-2 rounded-xl bg-zinc-200/70 dark:bg-surface-800 hover:bg-zinc-300/70 dark:hover:bg-surface-700 text-zinc-700 dark:text-zinc-300 transition">
+            <i data-lucide="sun" class="w-4 h-4"></i>
+          </button>
+          <button id="btnAddHabitTop" class="ml-0.5 inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-semibold shadow-md shadow-indigo-600/25 transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>New</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- XP Progress Bar (Habitica) -->
+      <div class="mt-2.5 flex items-center gap-2.5">
+        <div class="flex-1 h-1.5 rounded-full bg-zinc-200 dark:bg-surface-800 overflow-hidden">
+          <div id="xpBarFill" class="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 transition-all duration-500" style="width: 0%"></div>
+        </div>
+        <div class="flex items-center gap-2 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 shrink-0">
+          <span id="xpText">0 / 100 XP</span>
+          <span class="inline-flex items-center gap-0.5 text-amber-500 font-semibold" title="Streak Freeze Tokens (Finch-inspired)">
+            <i data-lucide="snowflake" class="w-3 h-3"></i>
+            <span id="freezeCount">2</span>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Scrollable Content -->
+    <main id="mainContent" class="flex-1 px-4 pt-4 pb-28 space-y-5 overflow-y-auto">
+      <!-- Dynamic View Container -->
+    </main>
+
+    <!-- Bottom Tab Navigation (iOS Native Style) -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-30 pb-safe bg-zinc-50/90 dark:bg-surface-900/90 backdrop-blur-xl border-t border-zinc-200/80 dark:border-zinc-800/80 px-2 pt-2">
+      <div class="grid grid-cols-4 gap-1">
+        <button data-tab="today" class="nav-tab flex flex-col items-center justify-center py-1.5 rounded-xl text-indigo-600 dark:text-indigo-400 font-semibold transition">
+          <i data-lucide="check-circle-2" class="w-5 h-5 mb-0.5"></i>
+          <span class="text-[10px]">Today</span>
+        </button>
+        <button data-tab="grid" class="nav-tab flex flex-col items-center justify-center py-1.5 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition">
+          <i data-lucide="grid-3x3" class="w-5 h-5 mb-0.5"></i>
+          <span class="text-[10px]">Heatmaps</span>
+        </button>
+        <button data-tab="insights" class="nav-tab flex flex-col items-center justify-center py-1.5 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition">
+          <i data-lucide="bar-chart-3" class="w-5 h-5 mb-0.5"></i>
+          <span class="text-[10px]">Insights</span>
+        </button>
+        <button data-tab="focus" class="nav-tab flex flex-col items-center justify-center py-1.5 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition">
+          <i data-lucide="timer" class="w-5 h-5 mb-0.5"></i>
+          <span class="text-[10px]">Focus &amp; Log</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Modal Container -->
+  <div id="modalBackdrop" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div id="modalContent" class="w-full max-w-lg bg-white dark:bg-surface-900 rounded-t-3xl sm:rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl max-h-[90vh] overflow-y-auto p-5 pb-safe">
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2 w-full max-w-sm px-4"></div>
+
+  <script>
+    // =========================================================
+    // 1. PWA / iPhone Home Screen Setup (Dynamic Icon + Manifest)
+    // =========================================================
+    (function setupIOSPwaAssets() {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 512, 512);
+        grad.addColorStop(0, '#6366f1');
+        grad.addColorStop(0.55, '#8b5cf6');
+        grad.addColorStop(1, '#d946ef');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Draw crisp concentric ring mark
+        ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+        ctx.lineWidth = 34;
+        ctx.beginPath();
+        ctx.arc(256, 256, 150, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 34;
+        ctx.beginPath();
+        ctx.arc(256, 256, 150, -Math.PI / 2, Math.PI * 1.15);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(256, 256, 36, 0, Math.PI * 2);
+        ctx.fill();
+
+        const iconUrl = canvas.toDataURL('image/png');
+        const appleIcon = document.createElement('link');
+        appleIcon.rel = 'apple-touch-icon';
+        appleIcon.href = iconUrl;
+        document.head.appendChild(appleIcon);
+
+        const manifest = {
+          name: 'Cadence — Habit & Routine Tracker',
+          short_name: 'Cadence',
+          start_url: '.',
+          display: 'standalone',
+          background_color: '#09090b',
+          theme_color: '#09090b',
+          icons: [{ src: iconUrl, sizes: '512x512', type: 'image/png' }]
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = URL.createObjectURL(blob);
+        document.head.appendChild(manifestLink);
+      } catch (e) { /* Ignore in restricted frames */ }
+    })();
+
+    // =========================================================
+    // 2. Utilities & Audio Synthesis
+    // =========================================================
+    const STORAGE_KEY = 'cadence_habit_tracker_v1';
+
+    function getDateStr(dateObj = new Date()) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function addDays(dateStr, delta) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      dt.setDate(dt.getDate() + delta);
+      return getDateStr(dt);
+    }
+
+    function formatDisplayDate(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+    }
+
+    let audioCtx = null;
+    function playTone(type) {
+      if (!state.settings.sound) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        if (type === 'complete') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.11);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.19);
+        } else if (type === 'tap') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, now);
+          gain.gain.setValueAtTime(0.07, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+          osc.start(now);
+          osc.stop(now + 0.07);
+        } else if (type === 'levelup') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.08);
+          osc.frequency.setValueAtTime(783.99, now + 0.16);
+          osc.frequency.setValueAtTime(1046.5, now + 0.24);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.start(now);
+          osc.stop(now + 0.46);
+        }
+      } catch (e) {}
+    }
+
+    function showToast(msg, icon = 'check-circle-2') {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = 'pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-semibold shadow-xl border border-zinc-700/40 dark:border-zinc-300/60 transition-all duration-300 opacity-0 translate-y-2';
+      el.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 text-indigo-400 dark:text-indigo-600 shrink-0"></i><span>${escapeHtml(msg)}</span>`;
+      container.appendChild(el);
+      if (window.lucide) lucide.createIcons({ root: el });
+      requestAnimationFrame(() => el.classList.remove('opacity-0', 'translate-y-2'));
+      setTimeout(() => {
+        el.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => el.remove(), 300);
+      }, 2400);
+    }
+
+    // =========================================================
+    // 3. Color Palette & Icons
+    // =========================================================
+    const COLORS = {
+      indigo:  { name: 'Indigo',  hex: '#6366f1', bg: 'bg-indigo-500/15', text: 'text-indigo-500', border: 'border-indigo-500/30', ring: '#6366f1' },
+      emerald: { name: 'Emerald', hex: '#10b981', bg: 'bg-emerald-500/15', text: 'text-emerald-500', border: 'border-emerald-500/30', ring: '#10b981' },
+      amber:   { name: 'Amber',   hex: '#f59e0b', bg: 'bg-amber-500/15', text: 'text-amber-500', border: 'border-amber-500/30', ring: '#f59e0b' },
+      rose:    { name: 'Rose',    hex: '#f43f5e', bg: 'bg-rose-500/15', text: 'text-rose-500', border: 'border-rose-500/30', ring: '#f43f5e' },
+      cyan:    { name: 'Cyan',    hex: '#06b6d4', bg: 'bg-cyan-500/15', text: 'text-cyan-500', border: 'border-cyan-500/30', ring: '#06b6d4' },
+      violet:  { name: 'Violet',  hex: '#8b5cf6', bg: 'bg-violet-500/15', text: 'text-violet-500', border: 'border-violet-500/30', ring: '#8b5cf6' }
+    };
+
+    const HABIT_ICONS = ['sun', 'droplets', 'book-open', 'dumbbell', 'brain', 'moon', 'heart-pulse', 'code-2', 'coffee', 'leaf', 'footprints', 'ban'];
+
+    const TIME_GROUPS = [
+      { id: 'morning',   label: 'Morning',   icon: 'sunrise' },
+      { id: 'afternoon', label: 'Afternoon', icon: 'sun' },
+      { id: 'evening',   label: 'Evening',   icon: 'moon' },
+      { id: 'anytime',   label: 'Anytime',   icon: 'layers' }
+    ];
+
+    // =========================================================
+    // 4. Default Seeded State (Rich 21-Day Demo History)
+    // =========================================================
+    function buildInitialState() {
+      const today = getDateStr();
+      const habits = [
+        {
+          id: 'h1',
+          name: 'Morning Sunlight & Walk',
+          identity: 'I am someone who starts the day energized',
+          stack: 'After I pour my morning coffee',
+          twoMinRule: 'Step outside for 2 minutes of daylight',
+          timeOfDay: 'morning',
+          type: 'boolean',
+          target: 1,
+          unit: 'done',
+          frequency: 'daily',
+          color: 'amber',
+          icon: 'sun',
+          kind: 'build',
+          timerMinutes: 15
+        },
+        {
+          id: 'h2',
+          name: 'Hydrate',
+          identity: 'I am someone who fuels my body cleanly',
+          stack: 'Every time I return to my desk',
+          twoMinRule: 'Drink half a glass of water right now',
+          timeOfDay: 'anytime',
+          type: 'count',
+          target: 8,
+          unit: 'glasses',
+          frequency: 'daily',
+          color: 'cyan',
+          icon: 'droplets',
+          kind: 'build',
+          timerMinutes: 0
+        },
+        {
+          id: 'h3',
+          name: 'Deep Focus Work',
+          identity: 'I am a craftsman who protects deep attention',
+          stack: 'After I close Slack & email at 9 AM',
+          twoMinRule: 'Open one doc and write 3 sentences',
+          timeOfDay: 'morning',
+          type: 'boolean',
+          target: 1,
+          unit: 'session',
+          frequency: 'weekdays',
+          color: 'indigo',
+          icon: 'brain',
+          kind: 'build',
+          timerMinutes: 25
+        },
+        {
+          id: 'h4',
+          name: 'Strength & Mobility',
+          identity: 'I am an athlete who trains consistently',
+          stack: 'Right after I change out of work clothes',
+          twoMinRule: 'Do 5 pushups and 30s plank',
+          timeOfDay: 'afternoon',
+          type: 'boolean',
+          target: 1,
+          unit: 'workout',
+          frequency: 'daily',
+          color: 'emerald',
+          icon: 'dumbbell',
+          kind: 'build',
+          timerMinutes: 30
+        },
+        {
+          id: 'h5',
+          name: 'Read Non-Fiction',
+          identity: 'I am a lifelong learner',
+          stack: 'After I brush my teeth at night',
+          twoMinRule: 'Read 2 pages before checking my phone',
+          timeOfDay: 'evening',
+          type: 'count',
+          target: 20,
+          unit: 'pages',
+          frequency: 'daily',
+          color: 'violet',
+          icon: 'book-open',
+          kind: 'build',
+          timerMinutes: 20
+        },
+        {
+          id: 'h6',
+          name: 'No Late-Night Scrolling',
+          identity: 'I am someone who protects restorative sleep',
+          stack: 'When my 10:30 PM wind-down alarm rings',
+          twoMinRule: 'Put phone on charger across the room',
+          timeOfDay: 'evening',
+          type: 'boolean',
+          target: 1,
+          unit: 'done',
+          frequency: 'daily',
+          color: 'rose',
+          icon: 'ban',
+          kind: 'quit',
+          timerMinutes: 0
+        }
+      ];
+
+      // Seed past 21 days (yesterday and earlier — today starts fresh for the user!)
+      const logs = {};
+      const moods = {};
+      const journals = {};
+      const patterns = [
+        [1, 8, 1, 1, 20, 1],
+        [1, 7, 1, 0, 15, 1],
+        [1, 8, 1, 1, 20, 1],
+        [1, 8, 1, 1, 20, 0],
+        [0, 6, 1, 1, 10, 1],
+        [1, 8, 0, 1, 20, 1],
+        [1, 8, 1, 1, 25, 1]
+      ];
+      for (let i = 21; i >= 1; i--) {
+        const dStr = addDays(today, -i);
+        const p = patterns[i % patterns.length];
+        logs[dStr] = {
+          h1: { value: p[0], status: p[0] ? 'done' : 'missed' },
+          h2: { value: p[1], status: p[1] >= 8 ? 'done' : 'partial' },
+          h3: { value: p[2], status: p[2] ? 'done' : 'missed' },
+          h4: { value: p[3], status: p[3] ? 'done' : 'skipped' },
+          h5: { value: p[4], status: p[4] >= 20 ? 'done' : 'partial' },
+          h6: { value: p[5], status: p[5] ? 'done' : 'missed' }
+        };
+        const completedCount = (p[0]?1:0) + (p[1]>=8?1:0) + (p[2]?1:0) + (p[3]?1:0) + (p[4]>=20?1:0) + (p[5]?1:0);
+        moods[dStr] = completedCount >= 5 ? 5 : completedCount >= 4 ? 4 : 3;
+      }
+      journals[addDays(today, -1)] = 'Morning sunlight + deep focus block made the whole afternoon effortless.';
+
+      return {
+        habits,
+        logs,
+        moods,
+        journals,
+        xp: 240,
+        freezes: 2,
+        selectedDate: today,
+        activeTab: 'today',
+        timeFilter: 'all',
+        settings: {
+          theme: 'dark',
+          sound: true,
+          twoMinMode: false
+        }
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.habits)) {
+            parsed.selectedDate = getDateStr();
+            return parsed;
+          }
+        }
+      } catch (e) {}
+      return buildInitialState();
+    }
+
+    let state = loadState();
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    // =========================================================
+    // 5. Habit Logic & Streak Calculation
+    // =========================================================
+    function isHabitScheduled(habit, dateStr) {
+      if (habit.frequency === 'daily') return true;
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const day = new Date(y, m - 1, d).getDay();
+      if (habit.frequency === 'weekdays') return day >= 1 && day <= 5;
+      if (habit.frequency === 'weekends') return day === 0 || day === 6;
+      return true;
+    }
+
+    function getHabitLog(habitId, dateStr) {
+      return (state.logs[dateStr] && state.logs[dateStr][habitId]) || { value: 0, status: 'none' };
+    }
+
+    function isHabitDone(habit, dateStr) {
+      const log = getHabitLog(habit.id, dateStr);
+      return log.status === 'done' || log.value >= habit.target;
+    }
+
+    function getHabitStreak(habit) {
+      const today = getDateStr();
+      let streak = 0;
+      let cursor = today;
+      if (!isHabitDone(habit, cursor) && getHabitLog(habit.id, cursor).status !== 'frozen') {
+        cursor = addDays(today, -1);
+      }
+      for (let i = 0; i < 365; i++) {
+        if (!isHabitScheduled(habit, cursor)) {
+          cursor = addDays(cursor, -1);
+          continue;
+        }
+        const log = getHabitLog(habit.id, cursor);
+        if (isHabitDone(habit, cursor) || log.status === 'frozen' || log.status === 'skipped') {
+          if (isHabitDone(habit, cursor)) streak++;
+          cursor = addDays(cursor, -1);
+        } else {
+          break;
+        }
+      }
+      return streak;
+    }
+
+    function getLevelInfo(xp) {
+      const level = Math.floor(xp / 150) + 1;
+      const currentXp = xp % 150;
+      return { level, currentXp, nextXp: 150, pct: Math.min(100, Math.round((currentXp / 150) * 100)) };
+    }
+
+    function awardXp(amount) {
+      const oldLevel = getLevelInfo(state.xp).level;
+      state.xp = Math.max(0, state.xp + amount);
+      const newLevel = getLevelInfo(state.xp).level;
+      if (newLevel > oldLevel) {
+        playTone('levelup');
+        if (window.confetti) confetti({ particleCount: 70, spread: 65, origin: { y: 0.7 } });
+        showToast(`Level ${newLevel} unlocked! +1 Streak Freeze`, 'award');
+        state.freezes += 1;
+      }
+    }
+
+    function updateHabitProgress(habitId, deltaOrExact, isExact = false) {
+      const habit = state.habits.find(h => h.id === habitId);
+      if (!habit) return;
+      const d = state.selectedDate;
+      if (!state.logs[d]) state.logs[d] = {};
+      const prev = getHabitLog(habitId, d);
+      const wasDone = isHabitDone(habit, d);
+
+      let newVal = isExact ? deltaOrExact : Math.max(0, (prev.value || 0) + deltaOrExact);
+      if (habit.type === 'boolean') {
+        newVal = wasDone && !isExact ? 0 : 1;
+      }
+
+      const nowDone = newVal >= habit.target;
+      state.logs[d][habitId] = {
+        value: newVal,
+        status: nowDone ? 'done' : newVal > 0 ? 'partial' : 'none'
+      };
+
+      if (nowDone && !wasDone) {
+        playTone('complete');
+        awardXp(25);
+        checkAllTodayDone();
+      } else if (!nowDone && wasDone) {
+        playTone('tap');
+        awardXp(-25);
+      } else {
+        playTone('tap');
+      }
+
+      saveState();
+      render();
+    }
+
+    function setHabitStatus(habitId, status) {
+      const habit = state.habits.find(h => h.id === habitId);
+      if (!habit) return;
+      const d = state.selectedDate;
+      if (!state.logs[d]) state.logs[d] = {};
+      if (status === 'frozen') {
+        if (state.freezes <= 0) {
+          showToast('No Streak Freezes left — level up to earn more!', 'snowflake');
+          return;
+        }
+        state.freezes -= 1;
+        state.logs[d][habitId] = { value: 0, status: 'frozen' };
+        showToast(`Streak Freeze applied to "${habit.name}"`, 'snowflake');
+      } else {
+        state.logs[d][habitId] = { value: 0, status };
+        showToast(status === 'skipped' ? 'Marked as Rest Day (no guilt)' : 'Status updated');
+      }
+      playTone('tap');
+      saveState();
+      render();
+    }
+
+    function checkAllTodayDone() {
+      const d = state.selectedDate;
+      const scheduled = state.habits.filter(h => isHabitScheduled(h, d));
+      if (scheduled.length > 0 && scheduled.every(h => isHabitDone(h, d))) {
+        if (window.confetti) confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+        showToast('100% Daily Cadence Complete! +50 Bonus XP', 'sparkles');
+        awardXp(50);
+      }
+    }
+
+    // =========================================================
+    // 6. Focus Timer State (TickTick / Forest inspired)
+    // =========================================================
+    let timerState = {
+      habitId: null,
+      secondsLeft: 25 * 60,
+      totalSeconds: 25 * 60,
+      running: false,
+      intervalId: null
+    };
+
+    function startTimerForHabit(habitId) {
+      const habit = state.habits.find(h => h.id === habitId);
+      const mins = (habit && habit.timerMinutes > 0) ? habit.timerMinutes : 25;
+      stopTimerInterval();
+      timerState.habitId = habitId;
+      timerState.totalSeconds = mins * 60;
+      timerState.secondsLeft = mins * 60;
+      timerState.running = false;
+      state.activeTab = 'focus';
+      render();
+    }
+
+    function stopTimerInterval() {
+      if (timerState.intervalId) {
+        clearInterval(timerState.intervalId);
+        timerState.intervalId = null;
+      }
+    }
+
+    function toggleTimerRun() {
+      if (timerState.running) {
+        stopTimerInterval();
+        timerState.running = false;
+        renderFocusTimerOnly();
+      } else {
+        timerState.running = true;
+        timerState.intervalId = setInterval(() => {
+          if (timerState.secondsLeft > 0) {
+            timerState.secondsLeft--;
+            renderFocusTimerOnly();
+          } else {
+            stopTimerInterval();
+            timerState.running = false;
+            playTone('levelup');
+            if (timerState.habitId) {
+              updateHabitProgress(timerState.habitId, 1, true);
+              showToast('Focus session complete! Habit logged.', 'check-circle-2');
+            } else {
+              showToast('Focus session complete! +20 XP', 'timer');
+              awardXp(20);
+              saveState();
+              render();
+            }
+          }
+        }, 1000);
+        renderFocusTimerOnly();
+      }
+    }
+
+    function renderFocusTimerOnly() {
+      const display = document.getElementById('timerClockDisplay');
+      const btn = document.getElementById('btnTimerStartPause');
+      const ring = document.getElementById('timerRingCircle');
+      if (!display) return;
+      const m = String(Math.floor(timerState.secondsLeft / 60)).padStart(2, '0');
+      const s = String(timerState.secondsLeft % 60).padStart(2, '0');
+      display.textContent = `${m}:${s}`;
+      if (btn) {
+        btn.innerHTML = timerState.running
+          ? `<i data-lucide="pause" class="w-4 h-4"></i><span>Pause</span>`
+          : `<i data-lucide="play" class="w-4 h-4"></i><span>Start</span>`;
+        if (window.lucide) lucide.createIcons({ root: btn });
+      }
+      if (ring) {
+        const circ = 2 * Math.PI * 66;
+        const pct = timerState.totalSeconds > 0 ? timerState.secondsLeft / timerState.totalSeconds : 0;
+        ring.style.strokeDashoffset = circ * (1 - pct);
+      }
+    }
+
+    // =========================================================
+    // 7. Rendering Views
+    // =========================================================
+    let chartInstances = [];
+    function destroyCharts() {
+      chartInstances.forEach(c => { try { c.destroy(); } catch (e) {} });
+      chartInstances = [];
+    }
+
+    function renderHeader() {
+      const lvl = getLevelInfo(state.xp);
+      document.getElementById('levelBadge').textContent = `Lvl ${lvl.level}`;
+      document.getElementById('xpBarFill').style.width = `${lvl.pct}%`;
+      document.getElementById('xpText').textContent = `${lvl.currentXp} / ${lvl.nextXp} XP`;
+      document.getElementById('freezeCount').textContent = state.freezes;
+
+      const d = state.selectedDate;
+      const scheduled = state.habits.filter(h => isHabitScheduled(h, d));
+      const done = scheduled.filter(h => isHabitDone(h, d)).length;
+      const todayStr = getDateStr();
+      const dateLabel = d === todayStr ? 'Today' : formatDisplayDate(d);
+      document.getElementById('headerSubtitle').textContent = `${dateLabel} · ${done}/${scheduled.length} completed`;
+
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        const active = btn.dataset.tab === state.activeTab;
+        btn.className = active
+          ? 'nav-tab flex flex-col items-center justify-center py-1.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold transition'
+          : 'nav-tab flex flex-col items-center justify-center py-1.5 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition';
+      });
+
+      const themeBtn = document.getElementById('btnThemeToggle');
+      themeBtn.innerHTML = state.settings.theme === 'dark'
+        ? `<i data-lucide="sun" class="w-4 h-4"></i>`
+        : `<i data-lucide="moon" class="w-4 h-4"></i>`;
+
+      const soundBtn = document.getElementById('btnSoundToggle');
+      soundBtn.innerHTML = state.settings.sound
+        ? `<i data-lucide="volume-2" class="w-4 h-4"></i>`
+        : `<i data-lucide="volume-x" class="w-4 h-4 text-zinc-400"></i>`;
+    }
+
+    function render() {
+      destroyCharts();
+      renderHeader();
+      const main = document.getElementById('mainContent');
+
+      if (state.activeTab === 'today') {
+        main.innerHTML = renderTodayView();
+      } else if (state.activeTab === 'grid') {
+        main.innerHTML = renderGridView();
+      } else if (state.activeTab === 'insights') {
+        main.innerHTML = renderInsightsView();
+        initInsightsCharts();
+      } else if (state.activeTab === 'focus') {
+        main.innerHTML = renderFocusView();
+        renderFocusTimerOnly();
+      }
+
+      if (window.lucide) lucide.createIcons({ root: document.getElementById('app') });
+      attachViewListeners();
+    }
+
+    function renderTodayView() {
+      const today = getDateStr();
+      const d = state.selectedDate;
+
+      let stripHtml = '';
+      for (let i = -5; i <= 1; i++) {
+        const dayStr = addDays(today, i);
+        const [y, m, dayNum] = dayStr.split('-').map(Number);
+        const dt = new Date(y, m - 1, dayNum);
+        const wd = dt.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2);
+        const isSel = dayStr === d;
+        const sched = state.habits.filter(h => isHabitScheduled(h, dayStr));
+        const doneCount = sched.filter(h => isHabitDone(h, dayStr)).length;
+        const pct = sched.length ? doneCount / sched.length : 0;
+
+        stripHtml += `
+          <button data-date="${dayStr}" class="date-pill flex flex-col items-center py-2 px-1 rounded-2xl border transition ${
+            isSel
+              ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/25'
+              : 'bg-white dark:bg-surface-900 border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-indigo-500/40'
+          }">
+            <span class="text-[10px] font-medium opacity-75">${wd}</span>
+            <span class="text-sm font-bold my-0.5">${dayNum}</span>
+            <span class="w-1.5 h-1.5 rounded-full ${
+              pct >= 1 ? 'bg-emerald-400' : pct > 0 ? 'bg-amber-400' : 'bg-zinc-300 dark:bg-zinc-700'
+            }"></span>
+          </button>`;
+      }
+
+      const scheduled = state.habits.filter(h => isHabitScheduled(h, d));
+      const doneCount = scheduled.filter(h => isHabitDone(h, d)).length;
+      const pct = scheduled.length ? Math.round((doneCount / scheduled.length) * 100) : 0;
+      const ringCirc = 2 * Math.PI * 26;
+      const ringOffset = ringCirc * (1 - pct / 100);
+
+      const filters = [{ id: 'all', label: 'All' }, ...TIME_GROUPS];
+      const filterPills = filters.map(f => `
+        <button data-timefilter="${f.id}" class="time-filter-btn px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+          state.timeFilter === f.id
+            ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+            : 'bg-zinc-200/70 dark:bg-surface-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-300/60 dark:hover:bg-surface-700'
+        }">${f.label}</button>
+      `).join('');
+
+      const visibleHabits = scheduled.filter(h => state.timeFilter === 'all' || h.timeOfDay === state.timeFilter);
+
+      let habitsHtml = '';
+      if (visibleHabits.length === 0) {
+        habitsHtml = `
+          <div class="text-center py-10 px-4 rounded-3xl bg-white dark:bg-surface-900 border border-dashed border-zinc-300 dark:border-zinc-800">
+            <p class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">No habits in this window</p>
+            <p class="text-xs text-zinc-500 mt-1">Switch filter or tap "+ New" to add a habit.</p>
+          </div>`;
+      } else {
+        habitsHtml = visibleHabits.map(h => renderHabitCard(h, d)).join('');
+      }
+
+      return `
+        <section class="grid grid-cols-7 gap-1.5">${stripHtml}</section>
+
+        <section class="rounded-3xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-4 flex items-center justify-between gap-4 shadow-sm">
+          <div class="flex items-center gap-3.5">
+            <div class="relative w-16 h-16 shrink-0 flex items-center justify-center">
+              <svg class="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" stroke-width="6" class="text-zinc-200 dark:text-surface-800"></circle>
+                <circle cx="32" cy="32" r="26" fill="none" stroke="url(#gradRing)" stroke-width="6" stroke-linecap="round"
+                  stroke-dasharray="${ringCirc}" stroke-dashoffset="${ringOffset}" class="ring-progress"></circle>
+                <defs>
+                  <linearGradient id="gradRing" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#6366f1" />
+                    <stop offset="100%" stop-color="#d946ef" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span class="absolute text-xs font-extrabold">${pct}%</span>
+            </div>
+            <div>
+              <h2 class="text-sm font-bold">${pct === 100 ? 'All Habits Complete!' : 'Daily Momentum'}</h2>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">${doneCount} of ${scheduled.length} habits logged</p>
+              <button id="btnToggleTwoMin" class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition ${
+                state.settings.twoMinMode
+                  ? 'bg-amber-500/15 text-amber-500 border-amber-500/30'
+                  : 'bg-zinc-100 dark:bg-surface-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+              }">
+                <i data-lucide="zap" class="w-3 h-3"></i>
+                <span>2-Min Starter Mode: ${state.settings.twoMinMode ? 'ON' : 'OFF'}</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          ${filterPills}
+        </section>
+
+        <section class="space-y-2.5">
+          ${habitsHtml}
+        </section>
+      `;
+    }
+
+    function renderHabitCard(habit, dateStr) {
+      const c = COLORS[habit.color] || COLORS.indigo;
+      const log = getHabitLog(habit.id, dateStr);
+      const done = isHabitDone(habit, dateStr);
+      const streak = getHabitStreak(habit);
+      const frozen = log.status === 'frozen';
+      const skipped = log.status === 'skipped';
+
+      const subCue = state.settings.twoMinMode && habit.twoMinRule
+        ? `2-Min Rule: ${habit.twoMinRule}`
+        : (habit.stack ? habit.stack : habit.identity);
+
+      let actionControl = '';
+      if (habit.type === 'count') {
+        actionControl = `
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button data-action="dec" data-id="${habit.id}" class="habit-act w-8 h-8 rounded-xl bg-zinc-100 dark:bg-surface-800 hover:bg-zinc-200 dark:hover:bg-surface-700 flex items-center justify-center text-zinc-600 dark:text-zinc-300 font-bold transition active:scale-90">-</button>
+            <div class="text-center min-w-[46px]">
+              <div class="text-xs font-bold">${log.value || 0}/${habit.target}</div>
+              <div class="text-[10px] text-zinc-400">${escapeHtml(habit.unit)}</div>
+            </div>
+            <button data-action="inc" data-id="${habit.id}" class="habit-act w-8 h-8 rounded-xl ${done ? 'bg-emerald-500 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-500'} flex items-center justify-center font-bold transition active:scale-90">+</button>
+          </div>`;
+      } else {
+        actionControl = `
+          <button data-action="toggle" data-id="${habit.id}" class="habit-act w-11 h-11 rounded-2xl flex items-center justify-center border-2 transition active:scale-90 shrink-0 ${
+            done
+              ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/25 animate-pop'
+              : frozen
+                ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-400'
+                : skipped
+                  ? 'bg-zinc-500/15 border-zinc-500/30 text-zinc-400'
+                  : 'border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 text-transparent hover:text-indigo-400'
+          }">
+            <i data-lucide="${frozen ? 'snowflake' : skipped ? 'coffee' : 'check'}" class="w-5 h-5"></i>
+          </button>`;
+      }
+
+      return `
+        <div class="rounded-3xl bg-white dark:bg-surface-900 border ${done ? 'border-emerald-500/30' : 'border-zinc-200/80 dark:border-zinc-800'} p-3.5 transition shadow-sm">
+          <div class="flex items-center justify-between gap-3">
+            <button data-action="detail" data-id="${habit.id}" class="habit-act flex items-center gap-3 min-w-0 text-left flex-1">
+              <div class="w-11 h-11 rounded-2xl ${c.bg} ${c.text} border ${c.border} flex items-center justify-center shrink-0">
+                <i data-lucide="${habit.icon || 'sparkles'}" class="w-5 h-5"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm font-bold truncate ${done ? 'line-through opacity-65' : ''}">${escapeHtml(habit.name)}</span>
+                  ${habit.kind === 'quit' ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-rose-500/15 text-rose-500">Quit</span>` : ''}
+                </div>
+                <p class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">${escapeHtml(subCue || habit.timeOfDay)}</p>
+                <div class="flex items-center gap-2.5 mt-1 text-[11px]">
+                  <span class="inline-flex items-center gap-1 font-semibold ${streak > 0 ? 'text-amber-500' : 'text-zinc-400'}">
+                    <i data-lucide="flame" class="w-3 h-3"></i>${streak}d streak
+                  </span>
+                  ${habit.timerMinutes > 0 ? `<span data-action="timer" data-id="${habit.id}" class="habit-act inline-flex items-center gap-1 text-indigo-500 hover:underline cursor-pointer"><i data-lucide="play-circle" class="w-3 h-3"></i>${habit.timerMinutes}m focus</span>` : ''}
+                </div>
+              </div>
+            </button>
+            ${actionControl}
+          </div>
+        </div>`;
+    }
+
+    function renderGridView() {
+      const today = getDateStr();
+      const daysCount = 35;
+
+      const heatmapsHtml = state.habits.map(h => {
+        const c = COLORS[h.color] || COLORS.indigo;
+        const streak = getHabitStreak(h);
+        let doneTotal = 0;
+        let cells = '';
+        for (let i = daysCount - 1; i >= 0; i--) {
+          const dStr = addDays(today, -i);
+          const log = getHabitLog(h.id, dStr);
+          const done = isHabitDone(h, dStr);
+          if (done) doneTotal++;
+          let cellStyle = 'bg-zinc-200 dark:bg-surface-800';
+          if (done) cellStyle = 'opacity-100';
+          else if (log.status === 'partial') cellStyle = 'opacity-45';
+          else if (log.status === 'frozen') cellStyle = 'bg-cyan-400/70';
+          else if (log.status === 'skipped') cellStyle = 'bg-zinc-400/40';
+
+          const inlineBg = (done || log.status === 'partial') ? `style="background-color: ${c.hex}"` : '';
+          cells += `<div title="${dStr}: ${log.status}" ${inlineBg} class="aspect-square rounded-[5px] ${cellStyle} transition"></div>`;
+        }
+        const rate = Math.round((doneTotal / daysCount) * 100);
+
+        return `
+          <div class="rounded-3xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl ${c.bg} ${c.text} flex items-center justify-center">
+                  <i data-lucide="${h.icon}" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold">${escapeHtml(h.name)}</h3>
+                  <p class="text-[11px] text-zinc-500">${rate}% over last 35 days · ${streak}d current streak</p>
+                </div>
+              </div>
+              <button data-action="detail" data-id="${h.id}" class="habit-act p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200">
+                <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="grid grid-cols-7 gap-1.5">
+              ${cells}
+            </div>
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-bold">Consistency Heatmaps</h2>
+            <p class="text-xs text-zinc-500">35-day visual chains inspired by HabitKit &amp; Way of Life</p>
+          </div>
+        </div>
+        <div class="space-y-3">${heatmapsHtml}</div>
+      `;
+    }
+
+    function renderInsightsView() {
+      const today = getDateStr();
+      let totalPossible = 0;
+      let totalDone = 0;
+      for (let i = 0; i < 14; i++) {
+        const dStr = addDays(today, -i);
+        const sched = state.habits.filter(h => isHabitScheduled(h, dStr));
+        totalPossible += sched.length;
+        totalDone += sched.filter(h => isHabitDone(h, dStr)).length;
+      }
+      const overallRate = totalPossible ? Math.round((totalDone / totalPossible) * 100) : 0;
+      const bestStreak = Math.max(0, ...state.habits.map(h => getHabitStreak(h)));
+
+      return `
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="rounded-2xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-3">
+            <div class="text-[11px] text-zinc-500">14-Day Rate</div>
+            <div class="text-xl font-extrabold text-indigo-500 mt-0.5">${overallRate}%</div>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-3">
+            <div class="text-[11px] text-zinc-500">Top Streak</div>
+            <div class="text-xl font-extrabold text-amber-500 mt-0.5">${bestStreak}d</div>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-3">
+            <div class="text-[11px] text-zinc-500">Total XP</div>
+            <div class="text-xl font-extrabold text-fuchsia-500 mt-0.5">${state.xp}</div>
+          </div>
+        </div>
+
+        <div class="rounded-3xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-4">
+          <h3 class="text-sm font-bold">14-Day Completion &amp; Mood Trend</h3>
+          <p class="text-[11px] text-zinc-500 mb-3">Compare habit adherence (%) vs. daily mood score (Bearable-style)</p>
+          <div class="relative h-60">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="rounded-3xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-4 space-y-3">
+          <div>
+            <h3 class="text-sm font-bold">Data &amp; Portability</h3>
+            <p class="text-[11px] text-zinc-500">Export your habits &amp; history as JSON or reset demo data.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="btnExportJson" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition">
+              <i data-lucide="download" class="w-4 h-4"></i>Export JSON
+            </button>
+            <label class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-200 dark:bg-surface-800 hover:bg-zinc-300 dark:hover:bg-surface-700 text-xs font-semibold cursor-pointer transition">
+              <i data-lucide="upload" class="w-4 h-4"></i>Import JSON
+              <input id="inputImportJson" type="file" accept=".json" class="hidden" />
+            </label>
+            <button id="btnResetDemo" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/15 text-rose-500 hover:bg-rose-500/25 text-xs font-semibold transition">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>Reset Demo
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function initInsightsCharts() {
+      const canvas = document.getElementById('trendChart');
+      if (!canvas || !window.Chart) return;
+      const today = getDateStr();
+      const labels = [];
+      const rates = [];
+      const moods = [];
+      for (let i = 13; i >= 0; i--) {
+        const dStr = addDays(today, -i);
+        labels.push(dStr.slice(5));
+        const sched = state.habits.filter(h => isHabitScheduled(h, dStr));
+        const done = sched.filter(h => isHabitDone(h, dStr)).length;
+        rates.push(sched.length ? Math.round((done / sched.length) * 100) : 0);
+        moods.push((state.moods[dStr] || 3) * 20);
+      }
+
+      const isDark = state.settings.theme === 'dark';
+      const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+      const tickColor = isDark ? '#a1a1aa' : '#52525b';
+
+      const chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Habit Completion %',
+              data: rates,
+              borderColor: '#6366f1',
+              backgroundColor: 'rgba(99,102,241,0.16)',
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2.5,
+              pointRadius: 3
+            },
+            {
+              label: 'Mood (Scaled 20-100)',
+              data: moods,
+              borderColor: '#f59e0b',
+              borderDash: [5, 4],
+              tension: 0.35,
+              borderWidth: 2,
+              pointRadius: 2.5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: tickColor, boxWidth: 12, font: { size: 11 } } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 10 } } },
+            y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 } } }
+          }
+        }
+      });
+      chartInstances.push(chart);
+    }
+
+    function renderFocusView() {
+      const d = state.selectedDate;
+      const currentMood = state.moods[d] || 0;
+      const currentNote = state.journals[d] || '';
+      const activeHabit = state.habits.find(h => h.id === timerState.habitId);
+      const circ = 2 * Math.PI * 66;
+
+      const moodOpts = [
+        { val: 1, emoji: '😫', label: 'Drained' },
+        { val: 2, emoji: '😕', label: 'Low' },
+        { val: 3, emoji: '😐', label: 'Okay' },
+        { val: 4, emoji: '🙂', label: 'Good' },
+        { val: 5, emoji: '🤩', label: 'Peak' }
+      ];
+
+      const habitOptions = state.habits.map(h =>
+        `<option value="${h.id}" ${timerState.habitId === h.id ? 'selected' : ''}>${escapeHtml(h.name)} (${h.timerMinutes || 25}m)</option>`
+      ).join('');
+
+      return `
+        <div class="rounded-3xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-5 text-center space-y-4">
+          <div class="flex items-center justify-between text-left">
+            <div>
+              <h2 class="text-sm font-bold">Focus Timer</h2>
+              <p class="text-[11px] text-zinc-500">Auto-logs your habit on completion</p>
+            </div>
+            <select id="timerHabitSelect" class="max-w-[170px] rounded-xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-medium">
+              <option value="">Free Focus (25m)</option>
+              ${habitOptions}
+            </select>
+          </div>
+
+          <div class="relative w-40 h-40 mx-auto flex items-center justify-center">
+            <svg class="w-40 h-40 -rotate-90" viewBox="0 0 150 150">
+              <circle cx="75" cy="75" r="66" fill="none" stroke="currentColor" stroke-width="8" class="text-zinc-200 dark:text-surface-800"></circle>
+              <circle id="timerRingCircle" cx="75" cy="75" r="66" fill="none" stroke="#6366f1" stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="${circ}" stroke-dashoffset="0" class="ring-progress"></circle>
+            </svg>
+            <div class="absolute">
+              <div id="timerClockDisplay" class="text-3xl font-extrabold tracking-tight tabular-nums">25:00</div>
+              <div class="text-[11px] text-zinc-500 mt-0.5 truncate max-w-[110px]">${activeHabit ? escapeHtml(activeHabit.name) : 'Deep Work'}</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-center gap-2.5">
+            <button id="btnTimerStartPause" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 transition">
+              <i data-lucide="play" class="w-4 h-4"></i><span>Start</span>
+            </button>
+            <button id="btnTimerReset" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-zinc-200 dark:bg-surface-800 hover:bg-zinc-300 dark:hover:bg-surface-700 text-xs font-semibold transition">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i><span>Reset</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="rounded-3xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-4 space-y-3">
+          <div>
+            <h3 class="text-sm font-bold">Daily Mood Check-in (${formatDisplayDate(d)})</h3>
+            <p class="text-[11px] text-zinc-500">Tracked alongside your habits in Insights</p>
+          </div>
+          <div class="grid grid-cols-5 gap-2">
+            ${moodOpts.map(m => `
+              <button data-mood="${m.val}" class="mood-btn flex flex-col items-center py-2.5 rounded-2xl border transition ${
+                currentMood === m.val
+                  ? 'bg-indigo-500/15 border-indigo-500 text-indigo-500'
+                  : 'bg-zinc-50 dark:bg-surface-800 border-zinc-200 dark:border-zinc-700 hover:border-indigo-500/40'
+              }">
+                <span class="text-xl">${m.emoji}</span>
+                <span class="text-[10px] font-semibold mt-1">${m.label}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="rounded-3xl bg-white dark:bg-surface-900 border border-zinc-200/80 dark:border-zinc-800 p-4 space-y-2.5">
+          <h3 class="text-sm font-bold">Quick Pattern Note</h3>
+          <textarea id="journalTextarea" rows="3" placeholder="What helped or got in the way today?" class="w-full rounded-2xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 p-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">${escapeHtml(currentNote)}</textarea>
+          <button id="btnSaveJournal" class="w-full py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-bold hover:opacity-90 transition">Save Note</button>
+        </div>
+      `;
+    }
+
+    // =========================================================
+    // 8. Modals (Create/Edit Habit, Habit Detail + Freeze, iPhone Install Guide)
+    // =========================================================
+    function openModal(html) {
+      const backdrop = document.getElementById('modalBackdrop');
+      const content = document.getElementById('modalContent');
+      content.innerHTML = html;
+      backdrop.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons({ root: content });
+    }
+
+    function closeModal() {
+      document.getElementById('modalBackdrop').classList.add('hidden');
+    }
+
+    function openHabitFormModal(editHabitId = null) {
+      const h = editHabitId ? state.habits.find(x => x.id === editHabitId) : null;
+      const colorOpts = Object.keys(COLORS).map(k => `
+        <button type="button" data-color="${k}" class="color-pick w-7 h-7 rounded-full border-2 transition ${
+          (h ? h.color : 'indigo') === k ? 'border-white scale-110 ring-2 ring-indigo-500' : 'border-transparent opacity-75'
+        }" style="background-color: ${COLORS[k].hex}"></button>
+      `).join('');
+
+      const iconOpts = HABIT_ICONS.map(ic => `
+        <button type="button" data-icon="${ic}" class="icon-pick p-2 rounded-xl border transition ${
+          (h ? h.icon : 'sun') === ic ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400' : 'bg-zinc-100 dark:bg-surface-800 border-transparent text-zinc-500'
+        }"><i data-lucide="${ic}" class="w-4 h-4"></i></button>
+      `).join('');
+
+      openModal(`
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-bold">${h ? 'Edit Habit' : 'Create Atomic Habit'}</h3>
+          <button id="btnCloseModal" class="p-1.5 rounded-xl bg-zinc-100 dark:bg-surface-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <form id="habitForm" class="space-y-3.5 text-xs">
+          <input type="hidden" id="hfId" value="${h ? h.id : ''}" />
+          <input type="hidden" id="hfColor" value="${h ? h.color : 'indigo'}" />
+          <input type="hidden" id="hfIcon" value="${h ? h.icon : 'sun'}" />
+
+          <div>
+            <label class="block font-semibold mb-1">Habit Name</label>
+            <input id="hfName" required value="${h ? escapeHtml(h.name) : ''}" placeholder="e.g., Meditate, Drink Water, Read" class="w-full rounded-xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 px-3 py-2.5" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block font-semibold mb-1">Time of Day</label>
+              <select id="hfTime" class="w-full rounded-xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 px-3 py-2.5">
+                ${TIME_GROUPS.map(g => `<option value="${g.id}" ${h && h.timeOfDay === g.id ? 'selected' : ''}>${g.label}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Schedule</label>
+              <select id="hfFreq" class="w-full rounded-xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 px-3 py-2.5">
+                <option value="daily" ${h && h.frequency === 'daily' ? 'selected' : ''}>Every Day</option>
+                <option value="weekdays" ${h && h.frequency === 'weekdays' ? 'selected' : ''}>Weekdays</option>
+                <option value="weekends" ${h && h.frequency === 'weekends' ? 'selected' : ''}>Weekends</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-semibold mb-1">Tracking Type</label>
+              <select id="hfType" class="w-full rounded-xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2.5">
+                <option value="boolean" ${!h || h.type === 'boolean' ? 'selected' : ''}>Checkmark</option>
+                <option value="count" ${h && h.type === 'count' ? 'selected' : ''}>Multi-Count</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Daily Target</label>
+              <input id="hfTarget" type="number" min="1" value="${h ? h.target : 1}" class="w-full rounded-xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2.5" />
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Focus (min)</label>
+              <input id="hfTimer" type="number" min="0" value="${h ? h.timerMinutes : 15}" class="w-full rounded-xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2.5" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-semibold mb-1">Habit Stack Cue (Atoms)</label>
+            <input id="hfStack" value="${h ? escapeHtml(h.stack) : ''}" placeholder="After I [current habit], I will..." class="w-full rounded-xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="block font-semibold mb-1">2-Minute Starter Version</label>
+            <input id="hfTwoMin" value="${h ? escapeHtml(h.twoMinRule) : ''}" placeholder="Tiny version for low-energy days" class="w-full rounded-xl bg-zinc-100 dark:bg-surface-800 border border-zinc-200 dark:border-zinc-700 px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="block font-semibold mb-1.5">Accent Color</label>
+            <div class="flex items-center gap-2.5">${colorOpts}</div>
+          </div>
+
+          <div>
+            <label class="block font-semibold mb-1.5">Icon</label>
+            <div class="grid grid-cols-6 gap-1.5">${iconOpts}</div>
+          </div>
+
+          <button type="submit" class="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 transition">
+            ${h ? 'Save Changes' : 'Add Habit'}
+          </button>
+        </form>
+      `);
+
+      document.getElementById('btnCloseModal').onclick = closeModal;
+      document.querySelectorAll('.color-pick').forEach(btn => {
+        btn.onclick = () => {
+          document.getElementById('hfColor').value = btn.dataset.color;
+          document.querySelectorAll('.color-pick').forEach(b => b.classList.remove('border-white', 'scale-110', 'ring-2', 'ring-indigo-500'));
+          btn.classList.add('border-white', 'scale-110', 'ring-2', 'ring-indigo-500');
+        };
+      });
+      document.querySelectorAll('.icon-pick').forEach(btn => {
+        btn.onclick = () => {
+          document.getElementById('hfIcon').value = btn.dataset.icon;
+          document.querySelectorAll('.icon-pick').forEach(b => b.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-indigo-400'));
+          btn.classList.add('bg-indigo-500/20', 'border-indigo-500', 'text-indigo-400');
+        };
+      });
+
+      document.getElementById('habitForm').onsubmit = (e) => {
+        e.preventDefault();
+        const id = document.getElementById('hfId').value;
+        const type = document.getElementById('hfType').value;
+        const payload = {
+          id: id || 'h_' + Date.now(),
+          name: document.getElementById('hfName').value.trim(),
+          timeOfDay: document.getElementById('hfTime').value,
+          frequency: document.getElementById('hfFreq').value,
+          type,
+          target: type === 'boolean' ? 1 : Math.max(1, parseInt(document.getElementById('hfTarget').value, 10) || 1),
+          unit: type === 'boolean' ? 'done' : 'units',
+          timerMinutes: Math.max(0, parseInt(document.getElementById('hfTimer').value, 10) || 0),
+          stack: document.getElementById('hfStack').value.trim(),
+          twoMinRule: document.getElementById('hfTwoMin').value.trim(),
+          identity: 'I am building consistency one day at a time',
+          color: document.getElementById('hfColor').value,
+          icon: document.getElementById('hfIcon').value,
+          kind: 'build'
+        };
+
+        if (id) {
+          const idx = state.habits.findIndex(x => x.id === id);
+          if (idx >= 0) state.habits[idx] = { ...state.habits[idx], ...payload };
+          showToast('Habit updated');
+        } else {
+          state.habits.push(payload);
+          showToast('New habit created!');
+        }
+        saveState();
+        closeModal();
+        render();
+      };
+    }
+
+    function openHabitDetailModal(habitId) {
+      const h = state.habits.find(x => x.id === habitId);
+      if (!h) return;
+      const streak = getHabitStreak(h);
+      openModal(`
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-bold">${escapeHtml(h.name)}</h3>
+          <button id="btnCloseModal" class="p-1.5 rounded-xl bg-zinc-100 dark:bg-surface-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="space-y-3 text-xs">
+          <div class="p-3 rounded-2xl bg-zinc-100 dark:bg-surface-800 space-y-1">
+            <div><span class="font-semibold text-zinc-400">Identity:</span> ${escapeHtml(h.identity)}</div>
+            ${h.stack ? `<div><span class="font-semibold text-zinc-400">Habit Stack:</span> ${escapeHtml(h.stack)}</div>` : ''}
+            ${h.twoMinRule ? `<div><span class="font-semibold text-zinc-400">2-Min Rule:</span> ${escapeHtml(h.twoMinRule)}</div>` : ''}
+            <div><span class="font-semibold text-zinc-400">Current Streak:</span> <span class="text-amber-500 font-bold">${streak} days</span></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnFreezeHabit" class="py-2.5 px-3 rounded-xl bg-cyan-500/15 text-cyan-500 font-semibold flex items-center justify-center gap-1.5">
+              <i data-lucide="snowflake" class="w-4 h-4"></i>Use Freeze (${state.freezes})
+            </button>
+            <button id="btnRestHabit" class="py-2.5 px-3 rounded-xl bg-zinc-200 dark:bg-surface-800 font-semibold flex items-center justify-center gap-1.5">
+              <i data-lucide="coffee" class="w-4 h-4"></i>Rest Day
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+            <button id="btnEditHabit" class="py-2.5 rounded-xl bg-indigo-600 text-white font-semibold">Edit Habit</button>
+            <button id="btnDeleteHabit" class="py-2.5 rounded-xl bg-rose-500/15 text-rose-500 font-semibold">Delete</button>
+          </div>
+        </div>
+      `);
+
+      document.getElementById('btnCloseModal').onclick = closeModal;
+      document.getElementById('btnFreezeHabit').onclick = () => { closeModal(); setHabitStatus(habitId, 'frozen'); };
+      document.getElementById('btnRestHabit').onclick = () => { closeModal(); setHabitStatus(habitId, 'skipped'); };
+      document.getElementById('btnEditHabit').onclick = () => openHabitFormModal(habitId);
+      document.getElementById('btnDeleteHabit').onclick = () => {
+        state.habits = state.habits.filter(x => x.id !== habitId);
+        saveState();
+        closeModal();
+        showToast('Habit deleted', 'trash-2');
+        render();
+      };
+    }
+
+    function openInstallGuideModal() {
+      openModal(`
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="smartphone" class="w-5 h-5 text-indigo-500"></i>
+            <h3 class="text-base font-bold">Install on iPhone Home Screen</h3>
+          </div>
+          <button id="btnCloseModal" class="p-1.5 rounded-xl bg-zinc-100 dark:bg-surface-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Cadence is configured as a standalone iOS Web App with a custom icon and full-screen safe-area layout.</p>
+        <ol class="space-y-3 text-xs">
+          <li class="flex items-start gap-3 p-3 rounded-2xl bg-zinc-100 dark:bg-surface-800">
+            <span class="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0">1</span>
+            <div><strong>Open in Safari:</strong> Download this HTML file or host it (e.g. GitHub Pages, Netlify Drop, or iCloud/Files) and open it in <strong>Safari</strong> on your iPhone.</div>
+          </li>
+          <li class="flex items-start gap-3 p-3 rounded-2xl bg-zinc-100 dark:bg-surface-800">
+            <span class="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0">2</span>
+            <div><strong>Tap Share:</strong> Tap the <strong>Share</strong> icon (square with upward arrow) at the bottom of Safari.</div>
+          </li>
+          <li class="flex items-start gap-3 p-3 rounded-2xl bg-zinc-100 dark:bg-surface-800">
+            <span class="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0">3</span>
+            <div><strong>Add to Home Screen:</strong> Scroll down, tap <strong>Add to Home Screen</strong>, and tap <strong>Add</strong>. It will launch full-screen like a native iOS app!</div>
+          </li>
+        </ol>
+      `);
+      document.getElementById('btnCloseModal').onclick = closeModal;
+    }
+
+    // =========================================================
+    // 9. Event Wiring
+    // =========================================================
+    function attachViewListeners() {
+      document.querySelectorAll('.date-pill').forEach(btn => {
+        btn.onclick = () => { state.selectedDate = btn.dataset.date; render(); };
+      });
+      document.querySelectorAll('.time-filter-btn').forEach(btn => {
+        btn.onclick = () => { state.timeFilter = btn.dataset.timefilter; saveState(); render(); };
+      });
+      const twoMinBtn = document.getElementById('btnToggleTwoMin');
+      if (twoMinBtn) {
+        twoMinBtn.onclick = () => { state.settings.twoMinMode = !state.settings.twoMinMode; saveState(); render(); };
+      }
+
+      document.querySelectorAll('.habit-act').forEach(el => {
+        el.onclick = (e) => {
+          e.stopPropagation();
+          const id = el.dataset.id;
+          const act = el.dataset.action;
+          if (act === 'toggle') updateHabitProgress(id, 1);
+          else if (act === 'inc') updateHabitProgress(id, 1);
+          else if (act === 'dec') updateHabitProgress(id, -1);
+          else if (act === 'timer') startTimerForHabit(id);
+          else if (act === 'detail') openHabitDetailModal(id);
+        };
+      });
+
+      const expBtn = document.getElementById('btnExportJson');
+      if (expBtn) {
+        expBtn.onclick = () => {
+          const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `cadence-habits-${getDateStr()}.json`;
+          a.click();
+          showToast('Backup exported as JSON', 'download');
+        };
+      }
+      const impInput = document.getElementById('inputImportJson');
+      if (impInput) {
+        impInput.onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const parsed = JSON.parse(reader.result);
+              if (parsed && Array.isArray(parsed.habits)) {
+                state = parsed;
+                saveState();
+                showToast('Backup restored!');
+                render();
+              }
+            } catch (err) {
+              showToast('Invalid JSON backup file', 'alert-circle');
+            }
+          };
+          reader.readAsText(file);
+        };
+      }
+      const resetBtn = document.getElementById('btnResetDemo');
+      if (resetBtn) {
+        resetBtn.onclick = () => {
+          state = buildInitialState();
+          saveState();
+          showToast('Demo data restored');
+          render();
+        };
+      }
+
+      const selTimer = document.getElementById('timerHabitSelect');
+      if (selTimer) {
+        selTimer.onchange = () => {
+          stopTimerInterval();
+          timerState.running = false;
+          timerState.habitId = selTimer.value || null;
+          const h = state.habits.find(x => x.id === timerState.habitId);
+          const mins = (h && h.timerMinutes > 0) ? h.timerMinutes : 25;
+          timerState.totalSeconds = mins * 60;
+          timerState.secondsLeft = mins * 60;
+          render();
+        };
+      }
+      const startPauseBtn = document.getElementById('btnTimerStartPause');
+      if (startPauseBtn) startPauseBtn.onclick = toggleTimerRun;
+      const resetTimerBtn = document.getElementById('btnTimerReset');
+      if (resetTimerBtn) {
+        resetTimerBtn.onclick = () => {
+          stopTimerInterval();
+          timerState.running = false;
+          timerState.secondsLeft = timerState.totalSeconds;
+          renderFocusTimerOnly();
+        };
+      }
+
+      document.querySelectorAll('.mood-btn').forEach(btn => {
+        btn.onclick = () => {
+          state.moods[state.selectedDate] = parseInt(btn.dataset.mood, 10);
+          playTone('tap');
+          saveState();
+          showToast('Mood logged');
+          render();
+        };
+      });
+      const saveJournalBtn = document.getElementById('btnSaveJournal');
+      if (saveJournalBtn) {
+        saveJournalBtn.onclick = () => {
+          state.journals[state.selectedDate] = document.getElementById('journalTextarea').value.trim();
+          saveState();
+          showToast('Reflection note saved');
+        };
+      }
+    }
+
+    document.querySelectorAll('.nav-tab').forEach(btn => {
+      btn.onclick = () => { state.activeTab = btn.dataset.tab; saveState(); render(); };
+    });
+    document.getElementById('btnAddHabitTop').onclick = () => openHabitFormModal();
+    document.getElementById('btnInstallGuide').onclick = openInstallGuideModal;
+    document.getElementById('btnSoundToggle').onclick = () => {
+      state.settings.sound = !state.settings.sound;
+      saveState();
+      renderHeader();
+      if (window.lucide) lucide.createIcons({ root: document.getElementById('btnSoundToggle') });
+      showToast(state.settings.sound ? 'Sound effects ON' : 'Sound effects muted');
+    };
+    document.getElementById('btnThemeToggle').onclick = () => {
+      state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.classList.toggle('dark', state.settings.theme === 'dark');
+      document.getElementById('themeColorMeta').content = state.settings.theme === 'dark' ? '#09090b' : '#fafafa';
+      saveState();
+      render();
+    };
+    document.getElementById('modalBackdrop').onclick = (e) => {
+      if (e.target.id === 'modalBackdrop') closeModal();
+    };
+
+    document.documentElement.classList.toggle('dark', state.settings.theme === 'dark');
+    render();
+  </script>
+</body>
+</html>
